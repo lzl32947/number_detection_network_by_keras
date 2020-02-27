@@ -99,7 +99,7 @@ class PriorBox(Layer):
         # variance now has shape (prior_box_num * input_width * input_height,4)
         outputs = np.concatenate((output_list, variances), axis=1)
         # outputs should have shape (prior_box_num * input_width * input_height,8)
-        # 包装变量为tf.tensor，注意初始化时要指定dtype以防出现ValueError
+        # 包装变量为tf.tensor，注意初始化时要指定dtype以防出现ValueError(the default dtype is float64)
         outputs = tf.Variable(outputs, dtype="float32")
         # 升高维度，添加输入的第一个参数(即input_shape[0])
         outputs = tf.expand_dims(outputs, 0)
