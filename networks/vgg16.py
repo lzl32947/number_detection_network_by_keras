@@ -1,5 +1,6 @@
 import keras
 from keras.layers import *
+from parameter.parameters import HyperParameter
 
 
 def vgg16_upper_layers():
@@ -17,64 +18,74 @@ def vgg16_upper_layers():
                             strides=(1, 1),
                             activation="relu",
                             padding='same',
-                            name='conv1_1')(net['input'])
+                            name='conv1_1',
+                            trainable=HyperParameter.vgg16_trainable)(net['input'])
     # shape=(300,300,64)
     net['conv1_2'] = Conv2D(filters=64,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv1_2')(net['conv1_1'])
+                            name='conv1_2',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv1_1'])
     # shape=(300,300,64)
     net['pool1'] = MaxPooling2D(pool_size=(2, 2),
                                 strides=(2, 2),
                                 padding='same',
-                                name='pool1')(net['conv1_2'])
+                                name='pool1',
+                                trainable=HyperParameter.vgg16_trainable)(net['conv1_2'])
     # shape=(150,150,64)
     net['conv2_1'] = Conv2D(filters=128,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv2_1')(net['pool1'])
+                            name='conv2_1',
+                            trainable=HyperParameter.vgg16_trainable)(net['pool1'])
     # shape=(150,150,128)
     net['conv2_2'] = Conv2D(filters=128,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv2_2')(net['conv2_1'])
+                            name='conv2_2',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv2_1'])
     # shape=(150,150,128)
     net['pool2'] = MaxPooling2D(pool_size=(2, 2),
                                 strides=(2, 2),
                                 padding='same',
-                                name='pool2')(net['conv2_2'])
+                                name='pool2',
+                                trainable=HyperParameter.vgg16_trainable)(net['conv2_2'])
     # shape=(75,75,128)
     net['conv3_1'] = Conv2D(filters=256,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv3_1')(net['pool2'])
+                            name='conv3_1',
+                            trainable=HyperParameter.vgg16_trainable)(net['pool2'])
     # shape=(75,75,256)
     net['conv3_2'] = Conv2D(filters=256,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv3_2')(net['conv3_1'])
+                            name='conv3_2',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv3_1'])
     # shape=(75,75,256)
     net["conv3_3"] = Conv2D(filters=256,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv3_3')(net['conv3_2'])
+                            name='conv3_3',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv3_2'])
     # shape=(75,75,256)
     net["pool3"] = MaxPooling2D(pool_size=(2, 2),
                                 strides=(2, 2),
                                 padding='same',
-                                name='pool3')(net["conv3_3"])
+                                name='pool3',
+                                trainable=HyperParameter.vgg16_trainable)(net["conv3_3"])
     # shape=(38,38,256)
 
     net["conv4_1"] = Conv2D(filters=512,
@@ -82,52 +93,60 @@ def vgg16_upper_layers():
                             strides=(1, 1),
                             activation="relu",
                             padding="same",
-                            name="conv4_1")(net["pool3"])
+                            name="conv4_1",
+                            trainable=HyperParameter.vgg16_trainable)(net["pool3"])
     # shape=(38,38,512)
     net["conv4_2"] = Conv2D(filters=512,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation="relu",
                             padding="same",
-                            name="conv4_2")(net["conv4_1"])
+                            name="conv4_2",
+                            trainable=HyperParameter.vgg16_trainable)(net["conv4_1"])
     # shape=(38,38,512)
     net["conv4_3"] = Conv2D(filters=512,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name="conv4_3")(net["conv4_2"])
+                            name="conv4_3",
+                            trainable=HyperParameter.vgg16_trainable)(net["conv4_2"])
     # shape=(38,38,512)
     net['pool4'] = MaxPooling2D(pool_size=(2, 2),
                                 strides=(2, 2),
                                 padding='same',
-                                name='pool4')(net["conv4_3"])
+                                name='pool4',
+                                trainable=HyperParameter.vgg16_trainable)(net["conv4_3"])
     # shape=(19,19,512)
     net['conv5_1'] = Conv2D(filters=512,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv5_1')(net['pool4'])
+                            name='conv5_1',
+                            trainable=HyperParameter.vgg16_trainable)(net['pool4'])
     # shape=(19,19,512)
     net['conv5_2'] = Conv2D(filters=512,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv5_2')(net['conv5_1'])
+                            name='conv5_2',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv5_1'])
     # shape=(19,19,512)
     net['conv5_3'] = Conv2D(filters=512,
                             kernel_size=(3, 3),
                             strides=(1, 1),
                             activation='relu',
                             padding='same',
-                            name='conv5_3')(net['conv5_2'])
+                            name='conv5_3',
+                            trainable=HyperParameter.vgg16_trainable)(net['conv5_2'])
     # shape=(19,19,512)
     # attention: strides turn to (1,1) instead of (2,2)
     net['pool5'] = MaxPooling2D(pool_size=(3, 3),
                                 strides=(1, 1),
                                 padding='same',
-                                name='pool5')(net['conv5_3'])
+                                name='pool5',
+                                trainable=HyperParameter.vgg16_trainable)(net['conv5_3'])
     # shape=(19,19,512)
     return net

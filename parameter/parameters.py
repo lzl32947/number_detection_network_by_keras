@@ -20,7 +20,7 @@ class HyperParameter(object):
                                [1.0, 2.0, 0.5],
                                [1.0, 2.0, 0.5]]
     # 定义输出的种类(包括一种背景)
-    class_num = 21
+    class_num = 11
     # 定义背景类的序号
     bg_class = 0
     # 定义用于加快训练的variance
@@ -29,6 +29,14 @@ class HyperParameter(object):
     threshold = 0.5
     # 定义最后选取的top k个元素的大小
     top_k = 400
+    # TODO:Add meaning to this parameter:alpha
+    alpha = 1.0
+    # 负样本和正样本之间的比例
+    neg_pos_ratio = 3.0
+    # TODO:Add meaning to this parameter:negatives_for_hard
+    negatives_for_hard = 100.0
+    # VGG16 Trainable
+    vgg16_trainable = True
 
 
 class Parameter(object):

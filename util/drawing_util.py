@@ -8,6 +8,7 @@ from parameter.parameters import HyperParameter
 
 
 def draw_image(image, input_list, offset_x=0, offset_y=0):
+    # 在给定的原图中绘制方框
     draw = Draw(image)
     for item in input_list:
         label = item['class']

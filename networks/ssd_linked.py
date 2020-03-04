@@ -188,4 +188,4 @@ def get_SSD_model():
 
 if __name__ == '__main__':
     models = get_SSD_model()
-    plot_model(models, show_layer_names=True, show_shapes=True)
+    plot_model(models, to_file="model_number.png", show_layer_names=True, show_shapes=True)
