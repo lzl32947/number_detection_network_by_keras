@@ -110,7 +110,7 @@ def adjust_boxes(raw_image, box_list):
     :param box_list: the list of box-dict with keys(class,xmin,ymin,xmax,ymax)
     :return: the adjusted box-dict list
     """
-    # 注意，这个函数包含了类型修改，是解码过程的逆向过程。
+    # 注意，这个函数是解码过程的逆向过程，即不是简单的放大。
     img_shape = np.shape(raw_image)
     x_range = HyperParameter.min_dim / img_shape[1]
     y_range = HyperParameter.min_dim / img_shape[0]
