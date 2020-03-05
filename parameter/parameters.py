@@ -39,6 +39,21 @@ class HyperParameter(object):
     vgg16_trainable = True
 
 
+class TrainParameter(object):
+    # 存放单个数字的文件夹
+    single_data_path = "./data"
+    # 存放真实图像训练样本的文件夹
+    voc_path = "./data/train.txt"
+    # 存放数字的类
+    class_list = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    # 生成的单个图像的高度范围
+    image_height = [40, 80]
+    # 宽度变化范围
+    image_ratio = [1, 3]
+    # 生成的最多的数字数量
+    max_num = 8
+
+
 class Parameter(object):
     # m 为计算步长公式中提取的层数
     m = len(HyperParameter.input_source_layers)

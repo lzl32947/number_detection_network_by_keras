@@ -8,101 +8,17 @@ from keras.optimizers import Adam
 from networks.ssd_linked import get_SSD_model
 from parameter.parameters import HyperParameter
 from archived.input_captcha_util import raw_data_generator
-
-
-def calculate_max_iou(priors_array, x_min, y_min, x_max, y_max):
-    index = 0
-    iou_max = 0
-    for underline in range(len(priors_array)):
-        position = priors_array[underline]
-        p_x_min = int(position[0] * HyperParameter.min_dim)
-        p_y_min = int(position[1] * HyperParameter.min_dim)
-        p_x_max = int(position[2] * HyperParameter.min_dim)
-        p_y_max = int(position[3] * HyperParameter.min_dim)
-
-        inter_width = min(x_max, p_x_max) - max(x_min, p_x_min)
-        inter_height = min(y_max, p_y_max) - max(y_min, p_y_min)
-        inter_area = max(0, inter_height) * max(0, inter_width)
-        full_area = (y_max - y_min) * (x_max - x_min) + (p_y_max - p_y_min) * (p_x_max - p_x_min)
-        iou = inter_area / (full_area - inter_area)
-        if iou > iou_max:
-            iou_max = iou
-            index = underline
-    return index
-
-
-def generate_single_data(dir_path, priors):
-    # priors with shape(8732,8), which is the shape of all prior box in the last
-    for image, position_dict in raw_data_generator(dir_path):
-        image = image.reshape((HyperParameter.min_dim, HyperParameter.min_dim, 3))
-        result_array = np.zeros(shape=(priors.shape[0], HyperParameter.class_num + 4), dtype="float32")
-        # all background
-        result_array[:, 4] = 1.0
-
-        for digit in position_dict:
-            digit_class = 1 + digit['name']
-            digit_x_min = digit['xmin']
-            digit_x_max = digit['xmax']
-            digit_y_min = digit['ymin']
-            digit_y_max = digit['ymax']
-            index = calculate_max_iou(priors, digit_x_min, digit_y_min, digit_x_max, digit_y_max)
-
-            digit_x_min /= HyperParameter.min_dim
-            digit_x_max /= HyperParameter.min_dim
-            digit_y_min /= HyperParameter.min_dim
-            digit_y_max /= HyperParameter.min_dim
-            p_x_min = priors[index, 0]
-            p_y_min = priors[index, 1]
-            p_x_max = priors[index, 2]
-            p_y_max = priors[index, 3]
-            real_box_center_x = (digit_x_min + digit_x_max) / 2
-            real_box_center_y = (digit_y_min + digit_y_max) / 2
-            real_box_width = digit_x_max - digit_x_min
-            real_box_height = digit_y_max - digit_y_min
-            prior_box_center_x = (p_x_min + p_x_max) / 2
-            prior_box_center_y = (p_y_min + p_y_max) / 2
-            prior_box_width = p_x_max - p_x_min
-            prior_box_height = p_y_max - p_y_min
-            adjust_x = real_box_center_x - prior_box_center_x
-            adjust_x /= prior_box_width
-            adjust_x /= HyperParameter.variances[0]
-            adjust_y = real_box_center_y - prior_box_center_y
-            adjust_y /= prior_box_height
-            adjust_y /= HyperParameter.variances[1]
-            adjust_width = real_box_width / prior_box_width
-            adjust_width = np.log(adjust_width)
-            adjust_width /= HyperParameter.variances[2]
-            adjust_height = real_box_height / prior_box_height
-            adjust_height = np.log(adjust_height)
-            adjust_height /= HyperParameter.variances[3]
-            # 组装
-            result_array[index, 0] = adjust_x
-            result_array[index, 1] = adjust_y
-            result_array[index, 2] = adjust_width
-            result_array[index, 3] = adjust_height
-            result_array[index, 4 + digit_class] = 1.0
-            result_array[index, 4] = 0.0
-        result = np.concatenate((result_array, priors), axis=1)
-        yield image, result
-
-
-def data_generator(dir_path, priors, batch_size=4):
-    X = []
-    Y = []
-    count = 0
-    while True:
-        for img, result in generate_single_data(dir_path, priors):
-            X.append(img)
-            Y.append(result)
-            count += 1
-            if count == batch_size:
-                yield np.array(X), np.array(Y)
-                count = 0
-                X = []
-                Y = []
+from util.data_util import data_generator
 
 
 def loss_function(y_true, y_pred):
+    """
+    This function has not been tested yet.
+    TODO: Debug this function to find out the hard negatives for training
+    :param y_true: The label
+    :param y_pred: The generated label
+    :return: loss
+    """
     def _l1_smooth_loss(y_t, y_p):
         abs_loss = tf.abs(y_t - y_p)
         sq_loss = 0.5 * (y_t - y_p) ** 2
@@ -207,14 +123,14 @@ if __name__ == '__main__':
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=6, verbose=1)
 
-    BATCH_SIZE = 3
+    BATCH_SIZE = 4
 
-    if True:
-        model.compile(optimizer=Adam(lr=1e-5), loss=loss_function)
-        model.fit_generator(data_generator("./data/train", priors, batch_size=BATCH_SIZE),
-                            steps_per_epoch=150 // BATCH_SIZE,
-                            validation_data=data_generator("./data/test", priors, batch_size=BATCH_SIZE),
-                            validation_steps=15 // BATCH_SIZE,
-                            epochs=10,
-                            initial_epoch=0,
-                            callbacks=[logging, checkpoint, reduce_lr, early_stopping])
+    model.compile(optimizer=Adam(lr=1e-5), loss=loss_function)
+    model.fit_generator(data_generator(BATCH_SIZE, True, priors),
+                        steps_per_epoch=400,
+                        validation_data=data_generator(BATCH_SIZE, False, priors),
+                        validation_steps=40,
+                        epochs=20,
+                        initial_epoch=0,
+                        callbacks=[logging, checkpoint, reduce_lr, early_stopping],
+                        verbose=1)

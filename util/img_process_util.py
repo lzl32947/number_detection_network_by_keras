@@ -1,10 +1,11 @@
+import random
+
 from PIL import Image
 import numpy as np
 from parameter.parameters import HyperParameter
 
 
-def process_single_input(img_path):
-    img = Image.open(img_path)
+def process_single_input(img, train=False):
     # change the image to numpy array with 3 dimension
     img_shape = np.array(np.shape(img)[0:2])
     width = img_shape[1]
@@ -21,6 +22,25 @@ def process_single_input(img_path):
     img_t = img.resize((new_width, new_height), Image.BICUBIC)
     # 新建图像并居中复制
     new_img = Image.new('RGB', (HyperParameter.min_dim, HyperParameter.min_dim), (128, 128, 128))
+
+    # add this for train
+    # create random noise
+    if train:
+        new_img = np.array(new_img)
+        # add noise
+        sigma = 25
+        r = new_img[:, :, 0].flatten()
+        g = new_img[:, :, 1].flatten()
+        b = new_img[:, :, 2].flatten()
+        for point in range(new_img.shape[0] * new_img.shape[1]):
+            r[point] = r[point] + random.gauss(0, sigma)
+            g[point] = g[point] + random.gauss(0, sigma)
+            b[point] = b[point] + random.gauss(0, sigma)
+        new_img[:, :, 0] = r.reshape([new_img.shape[0], new_img.shape[1]])
+        new_img[:, :, 1] = g.reshape([new_img.shape[0], new_img.shape[1]])
+        new_img[:, :, 2] = b.reshape([new_img.shape[0], new_img.shape[1]])
+        new_img = Image.fromarray(new_img)
+
     width_offset = (HyperParameter.min_dim - new_width) // 2
     height_offset = (HyperParameter.min_dim - new_height) // 2
     new_img.paste(img_t, (width_offset, height_offset))
@@ -30,7 +50,6 @@ def process_single_input(img_path):
     # 转换为numpy数组
     photo = np.array(new_img, dtype=np.float64)
     # 优化图像
-    photo = np.reshape(photo, [1, HyperParameter.min_dim, HyperParameter.min_dim, 3])
     photo = process_pixel(photo)
     return photo, x_offset_ratio, y_offset_ratio, img
 
