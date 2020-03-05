@@ -3,7 +3,7 @@ import random
 from PIL import Image
 import numpy as np
 import os
-from parameter.parameters import HyperParameter, TrainParameter
+from parameter.parameters import HyperParameter, TrainParameter, DebugParameter
 from util.img_process_util import process_single_input
 import matplotlib.pyplot as plt
 
@@ -69,7 +69,7 @@ def generate_label(box_list, priors):
         result_array[index, 3] = adjust_height
         result_array[index, 4 + digit_class] = 1.0
         result_array[index, 4] = 0.0
-        result_array[index, -4] = 1.0
+        result_array[index, -8] = 1.0
     return result_array
 
 
@@ -103,43 +103,51 @@ def calculate_max_iou(priors_array, x_min, y_min, x_max, y_max):
     return index
 
 
-def adjust_boxes(raw_image, box_list):
+def adjust_boxes(raw_image, box_list, reshape_only=DebugParameter.reshape_only):
     """
     This function is to adjust box to fit the image
     :param raw_image: the Image object or numpy array, with shape(?,?,3)
     :param box_list: the list of box-dict with keys(class,xmin,ymin,xmax,ymax)
     :return: the adjusted box-dict list
     """
-    # 注意，这个函数是解码过程的逆向过程，即不是简单的放大。
+
     img_shape = np.shape(raw_image)
     x_range = HyperParameter.min_dim / img_shape[1]
     y_range = HyperParameter.min_dim / img_shape[0]
-    ranges = min(x_range, y_range)
-    for bound_box_dict in box_list:
-        if bound_box_dict["xmin"] < img_shape[1] / 2:
-            x_min = int(HyperParameter.min_dim / 2 - (img_shape[1] / 2 - bound_box_dict["xmin"]) * ranges) - 1
-            bound_box_dict["xmin"] = x_min
-        else:
-            x_min = int(HyperParameter.min_dim / 2 + (bound_box_dict["xmin"] - img_shape[1] / 2) * ranges) - 1
-            bound_box_dict["xmin"] = x_min
-        if bound_box_dict["xmax"] < img_shape[1] / 2:
-            x_max = int(HyperParameter.min_dim / 2 - (img_shape[1] / 2 - bound_box_dict["xmax"]) * ranges) + 1
-            bound_box_dict["xmax"] = x_max
-        else:
-            x_max = int(HyperParameter.min_dim / 2 + (bound_box_dict["xmax"] - img_shape[1] / 2) * ranges) + 1
-            bound_box_dict["xmax"] = x_max
-        if bound_box_dict["ymin"] < img_shape[0] / 2:
-            y_min = int(HyperParameter.min_dim / 2 - (img_shape[0] / 2 - bound_box_dict["ymin"]) * ranges) - 1
-            bound_box_dict["ymin"] = y_min
-        else:
-            y_min = int(HyperParameter.min_dim / 2 + (bound_box_dict["ymin"] - img_shape[0] / 2) * ranges) - 1
-            bound_box_dict["ymin"] = y_min
-        if bound_box_dict["ymax"] < img_shape[0] / 2:
-            y_max = int(HyperParameter.min_dim / 2 - (img_shape[0] / 2 - bound_box_dict["ymax"]) * ranges) + 1
-            bound_box_dict["ymax"] = y_max
-        else:
-            y_max = int(HyperParameter.min_dim / 2 + (bound_box_dict["ymax"] - img_shape[0] / 2) * ranges) + 1
-            bound_box_dict["ymax"] = y_max
+    if reshape_only:
+        for bound_box_dict in box_list:
+            bound_box_dict['xmin'] = bound_box_dict['xmin'] * x_range
+            bound_box_dict['xmax'] = bound_box_dict['xmax'] * x_range
+            bound_box_dict['ymin'] = bound_box_dict['ymin'] * y_range
+            bound_box_dict['ymax'] = bound_box_dict['ymax'] * y_range
+    else:
+        # Attention,这个函数是解码过程的逆向过程,which is not simply zooming in.
+        ranges = min(x_range, y_range)
+        for bound_box_dict in box_list:
+            if bound_box_dict["xmin"] < img_shape[1] / 2:
+                x_min = int(HyperParameter.min_dim / 2 - (img_shape[1] / 2 - bound_box_dict["xmin"]) * ranges) - 1
+                bound_box_dict["xmin"] = x_min
+            else:
+                x_min = int(HyperParameter.min_dim / 2 + (bound_box_dict["xmin"] - img_shape[1] / 2) * ranges) - 1
+                bound_box_dict["xmin"] = x_min
+            if bound_box_dict["xmax"] < img_shape[1] / 2:
+                x_max = int(HyperParameter.min_dim / 2 - (img_shape[1] / 2 - bound_box_dict["xmax"]) * ranges) + 1
+                bound_box_dict["xmax"] = x_max
+            else:
+                x_max = int(HyperParameter.min_dim / 2 + (bound_box_dict["xmax"] - img_shape[1] / 2) * ranges) + 1
+                bound_box_dict["xmax"] = x_max
+            if bound_box_dict["ymin"] < img_shape[0] / 2:
+                y_min = int(HyperParameter.min_dim / 2 - (img_shape[0] / 2 - bound_box_dict["ymin"]) * ranges) - 1
+                bound_box_dict["ymin"] = y_min
+            else:
+                y_min = int(HyperParameter.min_dim / 2 + (bound_box_dict["ymin"] - img_shape[0] / 2) * ranges) - 1
+                bound_box_dict["ymin"] = y_min
+            if bound_box_dict["ymax"] < img_shape[0] / 2:
+                y_max = int(HyperParameter.min_dim / 2 - (img_shape[0] / 2 - bound_box_dict["ymax"]) * ranges) + 1
+                bound_box_dict["ymax"] = y_max
+            else:
+                y_max = int(HyperParameter.min_dim / 2 + (bound_box_dict["ymax"] - img_shape[0] / 2) * ranges) + 1
+                bound_box_dict["ymax"] = y_max
     return box_list
 
 
@@ -164,12 +172,11 @@ def rect_cross(x1_min, y1_min, x1_max, y1_max, x2_min, y2_min, x2_max, y2_max):
 # -> image_dict -> pos : []
 # -> image_dict -> pos -> dict{xmin,xmax,ymin,ymax,class}
 
-def generate_single_image(file_list, priors, **kwargs):
+def generate_single_image(file_list, priors):
     """
     This function create a single generated image instead of a real one for training.
     :param file_list: the list contains the single number.
     :param priors: the pre-loaded prior boxes with shape(8732,4)
-    :param kwargs: the packed parameters
     :return: the generated numpy array and its label
     """
     while True:
@@ -259,51 +266,49 @@ def generate_single_image(file_list, priors, **kwargs):
     # adjust boxes, remember this is the reversed process of decode function.
     # e.g. To centralized, make a new image of (300,300,3), paste and adjust box.
     k = adjust_boxes(new_img, number_list)
-    # whether to show the image
-    if "show_image" in kwargs.keys():
-        if kwargs['show_image']:
-            fig = plt.figure()
-            ax = fig.add_subplot(1, 1, 1)
-            plt.imshow(new_img)
-            for i in k:
-                xmin = i['xmin']
-                ymin = i['ymin']
-                xmax = i['xmax']
-                ymax = i['ymax']
-                rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
-                                    color='red')
-                ax.add_patch(rec)
-            plt.show()
-            plt.close()
     # process the input image, mainly change type to float64 and standardized it.
     x = process_single_input(new_img)[0]
+    # whether to show the image
+    if DebugParameter.show_image:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        plt.imshow(x)
+        for i in k:
+            xmin = i['xmin']
+            ymin = i['ymin']
+            xmax = i['xmax']
+            ymax = i['ymax']
+            rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
+                                color='red')
+            ax.add_patch(rec)
+        plt.show()
+        plt.close()
     # generate label of image
     y = generate_label(k, priors)
 
     return x, y
 
 
-def get_real_image(image_dict, priors, **kwargs):
+def get_real_image(image_dict, priors):
     image = Image.open(image_dict['path'])
-    photo, x_offset_ratio, y_offset_ratio, img = process_single_input(image, True)
+    photo, x_offset_ratio, y_offset_ratio, img = process_single_input(image, add_noise=True)
 
     # same warning, this function should centralized the image and adjust box
     k = adjust_boxes(img, image_dict['pos'])
-    if "show_image" in kwargs.keys():
-        if kwargs['show_image']:
-            fig = plt.figure()
-            ax = fig.add_subplot(1, 1, 1)
-            plt.imshow(photo)
-            for i in k:
-                xmin = i['xmin']
-                ymin = i['ymin']
-                xmax = i['xmax']
-                ymax = i['ymax']
-                rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
-                                    color='red')
-                ax.add_patch(rec)
-            plt.show()
-            plt.close()
+    if DebugParameter.show_image:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        plt.imshow(photo)
+        for i in k:
+            xmin = i['xmin']
+            ymin = i['ymin']
+            xmax = i['xmax']
+            ymax = i['ymax']
+            rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
+                                color='red')
+            ax.add_patch(rec)
+        plt.show()
+        plt.close()
     y = generate_label(k, priors)
     return photo, y
 
