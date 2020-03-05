@@ -1,5 +1,6 @@
 # ssd-keras
 A implementation of SSD net by using keras.
+Now is the simple implementation of 10-class number identification.
 
 Software requirement:
 ```
@@ -11,14 +12,14 @@ Directory structure:
 ```
 │  .gitignore
 │  predict.py               # predict image
+│  train.py                 # train the model
 ├─img                       # contain test image
-│      people.jpg
-│      street.jpg
-│      street2.jpg
 ├─layers                    # store custom layers
 │      normalized.py
 │      prior_box_layer.py
 │      __init__.py
+├─model_data
+|      prior_boxes_ssd300.pkl   # store prior boxes, need to download
 ├─networks                  # store network structure
 │      model.png
 │      ssd_linked.py
@@ -34,7 +35,8 @@ Directory structure:
 │      decode_util.py
 │      drawing_util.py
 │      img_process_util.py
+|      data_util.py
 │      __init__.py
-└─weight                    # store weights, but need to download
+└─weight                    # store weights, need to download
         ssd_weights.h5
 ```
