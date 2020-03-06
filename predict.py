@@ -16,8 +16,8 @@ if __name__ == '__main__':
     sess = tf.Session(config=config)
     K.set_session(sess)
     model = get_SSD_model()
-    model.load_weights("./checkpoints/ep016-loss0.005-val_loss0.029_more.h5", by_name=True)
-    for root, dirs, files in os.walk(r"G:\data_stored\test_line"):
+    model.load_weights("./checkpoints/ep005-loss0.741-val_loss0.680.h5", by_name=True)
+    for root, dirs, files in os.walk('g_data'):
         for file in files:
             img_path = os.path.join(root, file)
             # img_path = "./img/street2.jpg.jpg"

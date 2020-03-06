@@ -365,24 +365,24 @@ def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_r
 
 def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
     # prepare real images
-    real_image_list = []
-    # with open(TrainParameter.voc_path, "r") as fin:
-    #     for line in fin:
-    #         img_dict = {}
-    #         single_line = line.split(" ")
-    #         img_dict["path"] = single_line[0]
-    #         positions = []
-    #         for i in range(1, len(single_line)):
-    #             position_dict = {}
-    #             position_list = single_line[i].split(",")
-    #             position_dict["xmin"] = int(position_list[0])
-    #             position_dict["ymin"] = int(position_list[1])
-    #             position_dict["xmax"] = int(position_list[2])
-    #             position_dict["ymax"] = int(position_list[3])
-    #             position_dict["class"] = int(position_list[4])
-    #             positions.append(position_dict)
-    #         img_dict["pos"] = positions
-    #         real_image_list.append(img_dict)
+    image_list = []
+    with open(TrainParameter.real_voc_path, "r") as fin:
+        for line in fin:
+            img_dict = {}
+            single_line = line.split(" ")
+            img_dict["path"] = single_line[0]
+            positions = []
+            for i in range(1, len(single_line)):
+                position_dict = {}
+                position_list = single_line[i].split(",")
+                position_dict["xmin"] = int(position_list[0])
+                position_dict["ymin"] = int(position_list[1])
+                position_dict["xmax"] = int(position_list[2])
+                position_dict["ymax"] = int(position_list[3])
+                position_dict["class"] = int(position_list[4])
+                positions.append(position_dict)
+            img_dict["pos"] = positions
+            image_list.append(img_dict)
     with open(TrainParameter.generated_voc, "r") as fin:
         for line in fin:
             img_dict = {}
@@ -399,10 +399,10 @@ def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
                 position_dict["class"] = int(position_list[4])
                 positions.append(position_dict)
             img_dict["pos"] = positions
-            real_image_list.append(img_dict)
-    random.shuffle(real_image_list)
+            image_list.append(img_dict)
+    random.shuffle(image_list)
 
-    point = int(split_ratio * len(real_image_list))
+    point = int(split_ratio * len(image_list))
     counter = 0
     X = []
     Y = []
@@ -410,9 +410,9 @@ def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
         if train:
             index = random.randint(0, point - 1)
         else:
-            index = random.randint(point, len(real_image_list) - 1)
-        img = Image.open(real_image_list[index]['path'])
-        x, y = generate_array_and_label(img, real_image_list[index]['pos'], priors)
+            index = random.randint(point, len(image_list) - 1)
+        img = Image.open(image_list[index]['path'])
+        x, y = generate_array_and_label(img, image_list[index]['pos'], priors)
         X.append(x)
         Y.append(y)
         counter += 1

@@ -43,16 +43,16 @@ class DataParameter(object):
     # 是否图像直接reshape成(HyperParameter.min_dim,HyperParameter.min_dim,3)而不进行转码
     reshape_only = True
     # 是否在生成(读取)图像时展示图像
-    show_image = True
+    show_image = False
     # 在生成训练数据时是否进行image_util的process操作
-    process_pixel = False
+    process_pixel = True
 
 
 class TrainParameter(object):
     # 存放单个数字的文件夹
     single_data_path = "./data"
     # 存放真实图像训练样本的文件夹
-    voc_path = "./data/number.txt"
+    real_voc_path = "./data/real_reshape_voc.txt"
     # 存放数字的类
     class_list = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     # 生成的单个图像的高度范围
