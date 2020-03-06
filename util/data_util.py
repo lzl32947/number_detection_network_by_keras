@@ -3,7 +3,7 @@ import random
 from PIL import Image
 import numpy as np
 import os
-from parameter.parameters import HyperParameter, TrainParameter, DebugParameter
+from parameter.parameters import HyperParameter, TrainParameter, DataParameter
 from util.img_process_util import process_single_input
 import matplotlib.pyplot as plt
 
@@ -103,9 +103,10 @@ def calculate_max_iou(priors_array, x_min, y_min, x_max, y_max):
     return index
 
 
-def adjust_boxes(raw_image, box_list, reshape_only=DebugParameter.reshape_only):
+def adjust_boxes(raw_image, box_list, reshape_only=DataParameter.reshape_only):
     """
     This function is to adjust box to fit the image
+    :param reshape_only: whether just reshape the image without encoding
     :param raw_image: the Image object or numpy array, with shape(?,?,3)
     :param box_list: the list of box-dict with keys(class,xmin,ymin,xmax,ymax)
     :return: the adjusted box-dict list
@@ -166,13 +167,46 @@ def rect_cross(x1_min, y1_min, x1_max, y1_max, x2_min, y2_min, x2_max, y2_max):
         return 0
 
 
+def generate_array_and_label(image, number_list, priors):
+    """
+    This function return the image and label of the train data.
+    :param image: Image object
+    :param number_list: the position of boxes
+    :param priors: the pre-loaded prior array
+    :return: the train array and the label
+    """
+    # adjust boxes, remember this is the reversed process of decode function.
+    # e.g. To centralized, make a new image of (300,300,3), paste and adjust box.
+    k = adjust_boxes(image, number_list)
+    # process the input image, mainly change type to float64 and standardized it.
+    x = process_single_input(image)[0]
+    # whether to show the image
+    if DataParameter.show_image:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        plt.imshow(x)
+        for i in k:
+            xmin = i['xmin']
+            ymin = i['ymin']
+            xmax = i['xmax']
+            ymax = i['ymax']
+            rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
+                                color='red')
+            ax.add_patch(rec)
+        plt.show()
+        plt.close()
+    # generate label of image
+    y = generate_label(k, priors)
+    return x, y
+
+
 # The following are the items in dict
 # image_list:[]
 # -> image_dict:{path,pos}
 # -> image_dict -> pos : []
 # -> image_dict -> pos -> dict{xmin,xmax,ymin,ymax,class}
 
-def generate_single_image(file_list, priors):
+def generate_single_image(file_list):
     """
     This function create a single generated image instead of a real one for training.
     :param file_list: the list contains the single number.
@@ -263,54 +297,19 @@ def generate_single_image(file_list, priors):
                 new_img.paste(number_image, (x_min, y_min))
                 number_list.append(number_dict)
         break
-    # adjust boxes, remember this is the reversed process of decode function.
-    # e.g. To centralized, make a new image of (300,300,3), paste and adjust box.
-    k = adjust_boxes(new_img, number_list)
-    # process the input image, mainly change type to float64 and standardized it.
-    x = process_single_input(new_img)[0]
-    # whether to show the image
-    if DebugParameter.show_image:
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-        plt.imshow(x)
-        for i in k:
-            xmin = i['xmin']
-            ymin = i['ymin']
-            xmax = i['xmax']
-            ymax = i['ymax']
-            rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
-                                color='red')
-            ax.add_patch(rec)
-        plt.show()
-        plt.close()
-    # generate label of image
-    y = generate_label(k, priors)
-
-    return x, y
+    return new_img, number_list
 
 
-def get_real_image(image_dict, priors):
-    image = Image.open(image_dict['path'])
-    photo, x_offset_ratio, y_offset_ratio, img = process_single_input(image, add_noise=True)
-
-    # same warning, this function should centralized the image and adjust box
-    k = adjust_boxes(img, image_dict['pos'])
-    if DebugParameter.show_image:
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-        plt.imshow(photo)
-        for i in k:
-            xmin = i['xmin']
-            ymin = i['ymin']
-            xmax = i['xmax']
-            ymax = i['ymax']
-            rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
-                                color='red')
-            ax.add_patch(rec)
-        plt.show()
-        plt.close()
-    y = generate_label(k, priors)
-    return photo, y
+def get_image_number_list():
+    f_list = []
+    for class_name in TrainParameter.class_list:
+        single_digit_list = []
+        for root, dirs, files in os.walk(os.path.join(TrainParameter.single_data_path, class_name)):
+            for file in files:
+                full_path = os.path.join(root, file)
+                single_digit_list.append(full_path)
+        f_list.append(single_digit_list)
+    return f_list
 
 
 def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_ratio=0.1):
@@ -337,16 +336,7 @@ def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_r
     point = int(validation_ratio * len(real_image_list))
 
     # prepare generated images
-    file_list = []
-
-    for class_name in TrainParameter.class_list:
-        single_digit_list = []
-        for root, dirs, files in os.walk(os.path.join(TrainParameter.single_data_path, class_name)):
-            for file in files:
-                full_path = os.path.join(root, file)
-                single_digit_list.append(full_path)
-        file_list.append(single_digit_list)
-
+    file_list = get_image_number_list()
     counter = 0
     X = []
     Y = []
@@ -356,11 +346,13 @@ def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_r
                 index = random.randint(0, point - 1)
             else:
                 index = random.randint(point, len(real_image_list) - 1)
-            x, y = get_real_image(real_image_list[index], priors)
+            img = Image.open(real_image_list[index]['path'])
+            x, y = generate_array_and_label(img, real_image_list[index]['pos'], priors)
             X.append(x)
             Y.append(y)
         else:
-            x, y = generate_single_image(file_list, priors)
+            img, file_list = generate_single_image(file_list)
+            x, y = generate_array_and_label(img, file_list, priors)
             X.append(x)
             Y.append(y)
         counter += 1
@@ -369,3 +361,116 @@ def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_r
             yield np.array(X), np.array(Y)
             X = []
             Y = []
+
+
+def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
+    # prepare real images
+    real_image_list = []
+    # with open(TrainParameter.voc_path, "r") as fin:
+    #     for line in fin:
+    #         img_dict = {}
+    #         single_line = line.split(" ")
+    #         img_dict["path"] = single_line[0]
+    #         positions = []
+    #         for i in range(1, len(single_line)):
+    #             position_dict = {}
+    #             position_list = single_line[i].split(",")
+    #             position_dict["xmin"] = int(position_list[0])
+    #             position_dict["ymin"] = int(position_list[1])
+    #             position_dict["xmax"] = int(position_list[2])
+    #             position_dict["ymax"] = int(position_list[3])
+    #             position_dict["class"] = int(position_list[4])
+    #             positions.append(position_dict)
+    #         img_dict["pos"] = positions
+    #         real_image_list.append(img_dict)
+    with open(TrainParameter.generated_voc, "r") as fin:
+        for line in fin:
+            img_dict = {}
+            single_line = line.split(" ")
+            img_dict["path"] = single_line[0]
+            positions = []
+            for i in range(1, len(single_line)):
+                position_dict = {}
+                position_list = single_line[i].split(",")
+                position_dict["xmin"] = int(position_list[0])
+                position_dict["ymin"] = int(position_list[1])
+                position_dict["xmax"] = int(position_list[2])
+                position_dict["ymax"] = int(position_list[3])
+                position_dict["class"] = int(position_list[4])
+                positions.append(position_dict)
+            img_dict["pos"] = positions
+            real_image_list.append(img_dict)
+    random.shuffle(real_image_list)
+
+    point = int(split_ratio * len(real_image_list))
+    counter = 0
+    X = []
+    Y = []
+    while counter < batch_size:
+        if train:
+            index = random.randint(0, point - 1)
+        else:
+            index = random.randint(point, len(real_image_list) - 1)
+        img = Image.open(real_image_list[index]['path'])
+        x, y = generate_array_and_label(img, real_image_list[index]['pos'], priors)
+        X.append(x)
+        Y.append(y)
+        counter += 1
+        if counter == batch_size:
+            counter = 0
+            yield np.array(X), np.array(Y)
+            X = []
+            Y = []
+
+
+def generate_image():
+    """
+    This function generate train data and save it to files.
+    :return: None
+    """
+    for root, dirs, files in os.walk(TrainParameter.data_store_path):
+        for img in files:
+            os.remove(os.path.join(root, img))
+
+    f = open(TrainParameter.generated_voc, "w")
+    file_list = get_image_number_list()
+    for j in range(0, TrainParameter.max_generate_count):
+        image, raw_box_list = generate_single_image(file_list)
+        box_list = adjust_boxes(image, raw_box_list, True)
+        DataParameter.process_pixel = False
+        m = Image.fromarray(process_single_input(image)[0])
+        if DataParameter.show_image:
+            save_path = os.path.join(TrainParameter.data_store_path, "{:0>5d}.jpg".format(j))
+            m.save(save_path)
+            f.write(save_path)
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            plt.imshow(m)
+            for i in box_list:
+                xmin = int(i['xmin'])
+                ymin = int(i['ymin'])
+                xmax = int(i['xmax'])
+                ymax = int(i['ymax'])
+                num = i['class']
+                f.write(" {},{},{},{},{}".format(xmin, ymin, xmax, ymax, num))
+                rec = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False,
+                                    color='red')
+                ax.add_patch(rec)
+            f.write("\n")
+            plt.show()
+            plt.close()
+        else:
+            save_path = os.path.join(TrainParameter.data_store_path, "{:0>5d}.jpg".format(j))
+            m.save(save_path)
+            f.write(save_path)
+            for i in box_list:
+                xmin = int(i['xmin'])
+                ymin = int(i['ymin'])
+                xmax = int(i['xmax'])
+                ymax = int(i['ymax'])
+                num = i['class']
+                f.write(" {},{},{},{},{}".format(xmin, ymin, xmax, ymax, num))
+            f.write("\n")
+        if j % 100 == 0:
+            print("finish {} image.".format(j))
+    f.close()

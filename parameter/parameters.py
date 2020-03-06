@@ -39,11 +39,20 @@ class HyperParameter(object):
     vgg16_trainable = True
 
 
+class DataParameter(object):
+    # 是否图像直接reshape成(HyperParameter.min_dim,HyperParameter.min_dim,3)而不进行转码
+    reshape_only = True
+    # 是否在生成(读取)图像时展示图像
+    show_image = True
+    # 在生成训练数据时是否进行image_util的process操作
+    process_pixel = False
+
+
 class TrainParameter(object):
     # 存放单个数字的文件夹
     single_data_path = "./data"
     # 存放真实图像训练样本的文件夹
-    voc_path = "./data/train.txt"
+    voc_path = "./data/number.txt"
     # 存放数字的类
     class_list = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     # 生成的单个图像的高度范围
@@ -52,6 +61,12 @@ class TrainParameter(object):
     image_ratio = [1, 3]
     # 生成的最多的数字数量
     max_num = 8
+    # 生成的数据存放的文件夹
+    data_store_path = ".\\g_data"
+    # 所有训练数据存放的文件
+    generated_voc = ".\\data\\generated_train.txt"
+    # 最大图像生成数量
+    max_generate_count = 3000
 
 
 class Parameter(object):
