@@ -90,22 +90,22 @@ if __name__ == '__main__':
     DataParameter.process_pixel = True
 
     model = get_SSD_model()
-    model.load_weights("weight/ssd_weights.h5", by_name=True, skip_mismatch=True)
+    model.load_weights("weight/ep016-loss0.765-val_loss0.409.h5", by_name=True, skip_mismatch=True)
     # 训练参数设置
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(weight_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
                                  monitor='val_loss', save_weights_only=True, save_best_only=True, period=1)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=6, verbose=1)
+    # early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=6, verbose=1)
 
     BATCH_SIZE = 4
 
-    model.compile(optimizer=Adam(lr=1e-5), loss=loss_function)
+    model.compile(optimizer=Adam(lr=5e-5), loss=loss_function)
     model.fit_generator(read_from_file_generator(BATCH_SIZE, priors, train=True),
-                        steps_per_epoch=400,
+                        steps_per_epoch=100,
                         validation_data=read_from_file_generator(BATCH_SIZE, priors, train=False),
-                        validation_steps=40,
-                        epochs=20,
+                        validation_steps=5,
+                        epochs=200,
                         initial_epoch=0,
-                        callbacks=[logging, checkpoint, reduce_lr, early_stopping],
+                        callbacks=[logging, checkpoint, reduce_lr],
                         verbose=1)

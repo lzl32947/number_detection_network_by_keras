@@ -301,6 +301,10 @@ def generate_single_image(file_list):
 
 
 def get_image_number_list():
+    """
+    gather the image of each number to a list
+    :return: the list of files
+    """
     f_list = []
     for class_name in TrainParameter.class_list:
         single_digit_list = []
@@ -313,9 +317,19 @@ def get_image_number_list():
 
 
 def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_ratio=0.1):
+    """
+    return the generated x and y for a batch
+    THIS FUNCTION WILL SLOW DOWN TRAIN PROCESS, use read_from_file_generator instead
+    :param batch_size: batch size
+    :param train: whether generate image for train
+    :param priors: the pre-loaded prior box
+    :param validation_ratio: the ratio that train : validation, default is 0.8, which stands for 90% for train
+    :param real_image_ratio: the percentage of a real image occurs
+    :return: x , y
+    """
     # prepare real images
     real_image_list = []
-    with open(TrainParameter.voc_path, "r") as fin:
+    with open(TrainParameter.real_voc_path, "r") as fin:
         for line in fin:
             img_dict = {}
             single_line = line.split(" ")
@@ -364,6 +378,14 @@ def data_generator(batch_size, train, priors, validation_ratio=0.8, real_image_r
 
 
 def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
+    """
+    This function return the image and labels from voc files instead of generated images.
+    :param batch_size: size of a batch
+    :param priors: the pre-loaded prior box
+    :param split_ratio: the ratio that train : validation, default is 0.9, which stands for 90% for train
+    :param train: whether generate image for train
+    :return: x,y
+    """
     # prepare real images
     image_list = []
     with open(TrainParameter.real_voc_path, "r") as fin:
@@ -383,7 +405,7 @@ def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
                 positions.append(position_dict)
             img_dict["pos"] = positions
             image_list.append(img_dict)
-    with open(TrainParameter.generated_voc, "r") as fin:
+    with open(TrainParameter.train_generated_voc, "r") as fin:
         for line in fin:
             img_dict = {}
             single_line = line.split(" ")
@@ -423,16 +445,21 @@ def read_from_file_generator(batch_size, priors, split_ratio=0.9, train=True):
             Y = []
 
 
-def generate_image():
+def generate_image(train=True):
     """
     This function generate train data and save it to files.
     :return: None
     """
-    for root, dirs, files in os.walk(TrainParameter.data_store_path):
+    if train:
+        save_dir = TrainParameter.train_data_store_path
+        f = open(TrainParameter.train_generated_voc, "w")
+    else:
+        save_dir = TrainParameter.test_data_store_path
+        f = open(TrainParameter.test_generated_voc, "w")
+        TrainParameter.max_generate_count = int(TrainParameter.max_generate_count / 100)
+    for root, dirs, files in os.walk(save_dir):
         for img in files:
             os.remove(os.path.join(root, img))
-
-    f = open(TrainParameter.generated_voc, "w")
     file_list = get_image_number_list()
     for j in range(0, TrainParameter.max_generate_count):
         image, raw_box_list = generate_single_image(file_list)
@@ -440,7 +467,7 @@ def generate_image():
         DataParameter.process_pixel = False
         m = Image.fromarray(process_single_input(image)[0])
         if DataParameter.show_image:
-            save_path = os.path.join(TrainParameter.data_store_path, "{:0>5d}.jpg".format(j))
+            save_path = os.path.join(save_dir, "{:0>5d}.jpg".format(j))
             m.save(save_path)
             f.write(save_path)
             fig = plt.figure()
@@ -460,7 +487,7 @@ def generate_image():
             plt.show()
             plt.close()
         else:
-            save_path = os.path.join(TrainParameter.data_store_path, "{:0>5d}.jpg".format(j))
+            save_path = os.path.join(save_dir, "{:0>5d}.jpg".format(j))
             m.save(save_path)
             f.write(save_path)
             for i in box_list:
@@ -471,6 +498,6 @@ def generate_image():
                 num = i['class']
                 f.write(" {},{},{},{},{}".format(xmin, ymin, xmax, ymax, num))
             f.write("\n")
-        if j % 100 == 0:
-            print("finish {} image.".format(j))
+        if (j + 1) % 100 == 0:
+            print("finish {} image.".format(j + 1))
     f.close()

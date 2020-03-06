@@ -54,7 +54,7 @@ def process_single_input(img, add_noise=False):
         y_offset_ratio = height_offset / HyperParameter.min_dim
     if DataParameter.process_pixel:
         # 转换为numpy数组
-        photo = np.array(new_img, dtype=np.float64)
+        photo = np.array(new_img, dtype=np.float32)
         # 优化图像
         photo = process_pixel(photo)
     else:
