@@ -16,7 +16,11 @@ class Config(object):
 
     prior_box_dir = "./other/prior_box"
 
-    test_data_dir = "./data"
+    test_data_dir = "./data/test"
+
+    train_annotation_path = "./data/train_annotation.txt"
+    test_annotation_path = "./data/test_annotation.txt"
+    valid_annotation_path = "./data/valid_annotation.txt"
 
     # 输入的最小尺度
     input_dim = 300
@@ -36,7 +40,7 @@ class Config(object):
                                [1.0, 2.0, 0.5],
                                [1.0, 2.0, 0.5]]
     # 定义输出的种类(包括一种背景)
-    class_num = 21
+    class_num = 11
     # 定义背景类的序号
     bg_class = 0
     # 定义用于加快训练的variance
@@ -65,5 +69,3 @@ class Config(object):
 class PMethod(Enum):
     Zoom = 0
     Reshape = 1
-
-

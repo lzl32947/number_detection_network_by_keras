@@ -16,10 +16,12 @@ def init_session():
     K.set_session(sess)
 
 
-def choose_model(model_name, class_num):
+def SSD_Model(model_name, class_num, weight_file=None):
     init_session()
     if model_name == "vgg16":
         Config.class_num = class_num + 1
         Config.priors = pickle.load(open(os.path.join(Config.prior_box_dir, 'prior_boxes_ssd300.pkl'), 'rb'))
         model = SSD_VGG16()
+        if weight_file is not None:
+            model.load_weights(weight_file, skip_mismatch=True, by_name=True)
         return model

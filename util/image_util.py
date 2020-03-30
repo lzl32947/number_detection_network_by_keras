@@ -55,7 +55,7 @@ def draw_image(image_path, result_list, method):
             y_min = shape[0] * box[1]
             x_max = shape[1] * box[2]
             y_max = shape[0] * box[3]
-        else:
+        elif method == PMethod.Zoom:
             x_min = Config.input_dim * box[0]
             y_min = Config.input_dim * box[1]
             x_max = Config.input_dim * box[2]
@@ -82,6 +82,7 @@ def draw_image(image_path, result_list, method):
             x_max = x_max / Config.input_dim * shape[1]
             y_min = y_min / Config.input_dim * shape[0]
             y_max = y_max / Config.input_dim * shape[0]
-
+        else:
+            raise RuntimeError("No Method Selected.")
         draw.rectangle((x_min, y_min, x_max, y_max), outline=(255, 0, 0))
     image.show()
