@@ -1,9 +1,8 @@
 from PIL import Image
 import numpy as np
-import os
 import tensorflow as tf
 import keras.backend as K
-from Configs import Config, PMethod
+from config.Configs import Config, PMethod
 from util.image_util import zoom_image, resize_image
 
 import matplotlib.pyplot as plt

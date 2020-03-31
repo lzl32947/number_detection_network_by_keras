@@ -1,14 +1,13 @@
 import os
-import pickle
 
 import tensorflow as tf
-import keras.backend as K
 from keras.callbacks import *
 from keras.optimizers import Adam
 
-from Configs import Config, PMethod
+from config.Configs import Config, PMethod
 from models import SSD_Model
 from util.data_util import data_generator
+from datetime import datetime
 
 
 def loss_function(y_t, y_p):
@@ -81,14 +80,19 @@ if __name__ == '__main__':
     sess.run(tf.initialize_all_variables())
     K.set_session(sess)
 
-    model = SSD_Model("vgg16", 10, os.path.join(Config.weight_dir, "ssd_weights_20.h5"))
+    time = datetime.now().strftime('%Y%m%d_%H%M%S')
+    checkpoint_dir = os.path.join(Config.checkpoint_dir, time)
+    log_dir = os.path.join(Config.tensorboard_log_dir, time)
+    os.mkdir(checkpoint_dir)
+    os.mkdir(log_dir)
+    model = SSD_Model("vgg16", 10, [os.path.join(Config.weight_dir, "ssd_weights_20.h5"), ])
     # 训练参数设置
-    logging = TensorBoard(log_dir=Config.tensorboard_log_dir)
+    logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(
-        os.path.join(Config.checkpoint_dir, 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5'),
+        os.path.join(checkpoint_dir, 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5'),
         monitor='val_loss', save_weights_only=True, save_best_only=True, period=1)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=6, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
 
     BATCH_SIZE = 4
 
@@ -98,7 +102,7 @@ if __name__ == '__main__':
                         validation_data=data_generator(Config.valid_annotation_path, batch_size=4,
                                                        method=PMethod.Reshape),
                         validation_steps=25,
-                        epochs=60,
+                        epochs=1000,
                         initial_epoch=0,
                         callbacks=[logging, checkpoint, reduce_lr],
                         verbose=1)

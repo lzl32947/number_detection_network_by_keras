@@ -1,7 +1,9 @@
+import os
+
 from PIL.ImageDraw import Draw
 
-from Configs import Config, PMethod
-from PIL import Image
+from config.Configs import Config, PMethod
+from PIL import Image, ImageFont
 import numpy as np
 
 
@@ -35,6 +37,8 @@ def zoom_image(image):
 
 
 def draw_image(image_path, result_list, method):
+    font = ImageFont.truetype(os.path.join(Config.font_dir, "simhei.ttf"), 10)
+
     image = Image.open(image_path)
     shape = np.array(image).shape
     draw = Draw(image)
@@ -85,4 +89,5 @@ def draw_image(image_path, result_list, method):
         else:
             raise RuntimeError("No Method Selected.")
         draw.rectangle((x_min, y_min, x_max, y_max), outline=(255, 0, 0))
+        draw.text((x_min + 2, y_min + 2), "{:.2f}% \n{}".format(conf * 100, index), font=font, fill='red')
     image.show()

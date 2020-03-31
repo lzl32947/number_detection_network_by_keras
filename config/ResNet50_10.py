@@ -1,31 +1,8 @@
-from enum import Enum
-
-
-class Config(object):
-    # 文件目录结构
-    log_dir = "./log"
-    tensorboard_log_dir = "./log/tensorboard"
-    weight_dir = "./log/weight"
-    checkpoint_dir = "./log/checkpoint"
-
-    model_dir = "./model"
-    model_output_dir = "./model/image"
-
-    other_dir = "./other"
-    font_dir = "./other/font"
-
-    prior_box_dir = "./other/prior_box"
-
-    test_data_dir = "./data/test"
-
-    train_annotation_path = "./data/train_annotation.txt"
-    test_annotation_path = "./data/test_annotation.txt"
-    valid_annotation_path = "./data/valid_annotation.txt"
-
+class ResNet50_10(object):
     # 输入的最小尺度
     input_dim = 300
     # 特征图的来源
-    input_source_layers = ['conv4_3', 'fc7', 'conv6_2', 'conv7_2', 'conv8_2', 'conv9_2']
+    input_source_layers = ['activation_22', 'activation_40', 'activation_49', 'conv7_2', 'conv8_2', 'conv9_2']
     # 特征图像的边长
     input_source_layer_width = [38, 19, 10, 5, 3, 1]
     # 最底层先验框的大小(scale):0.2
@@ -57,15 +34,8 @@ class Config(object):
     neg_pos_ratio = 3.0
     # TODO:Add meaning to this parameter:negatives_for_hard
     negatives_for_hard = 100.0
-    # VGG16 Trainable
-    vgg16_trainable = True
     # max_size & min_size
     min_size = [30.0, 60.0, 111.0, 162.0, 213.0, 264.0]
     max_size = [60.0, 111.0, 162.0, 213.0, 264.0, 315.0]
     # prior_boxes
     priors = None
-
-
-class PMethod(Enum):
-    Zoom = 0
-    Reshape = 1
