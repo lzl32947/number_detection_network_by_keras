@@ -1,13 +1,14 @@
 import os
-
-import tensorflow as tf
-from keras.callbacks import *
-from keras.optimizers import Adam
-
-from config.Configs import Config, PMethod
-from models import SSD_Model
-from util.data_util import data_generator
 from datetime import datetime
+import keras
+import tensorflow as tf
+import keras.backend as K
+from keras.callbacks import TensorBoard, ModelCheckpoint
+from keras.utils import plot_model
+
+from config.Configs import Config, PMethod, ModelConfig
+from model.vgg16_base import VGG16_SSD
+from util.input_util import data_generator, get_prior_box_list, get_weight_file
 
 
 def loss_function(y_t, y_p):
@@ -51,7 +52,7 @@ def loss_function(y_t, y_p):
     # conf的起始
     confs_start = 4 + Config.bg_class + 1
     # conf的结束
-    confs_end = confs_start + Config.class_num - 1
+    confs_end = confs_start + len(Config.class_names)
     # 找到实际上在该位置不应该有预测结果的框，求他们最大的置信度。
     max_confs = tf.reduce_max(y_p[:, :, confs_start:confs_end],
                               axis=2)
@@ -73,36 +74,74 @@ def loss_function(y_t, y_p):
     return total_loss
 
 
-if __name__ == '__main__':
+def init_session():
+    """
+    Init the tensorflow session.
+    :return: None
+    """
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.initialize_all_variables())
     K.set_session(sess)
 
+
+def get_model(weight_file, load_by_name, model_name, show_image=False):
+    prior_box_list = get_prior_box_list(model_name)
+    if model_name == ModelConfig.VGG16:
+        model = VGG16_SSD(prior_box_list)
+        if weight_file:
+            for i, j in zip(weight_file, load_by_name):
+                model.load_weights(i, by_name=j, skip_mismatch=True)
+        if show_image:
+            plot_model(model, to_file=os.path.join(Config.model_output_dir, "{}.png".format(model_name)),
+                       show_shapes=True,
+                       show_layer_names=True)
+        return model
+    else:
+        raise RuntimeError("No model selected.")
+
+
+def train(weight_file_list, load_weight_by_name, model_name, use_generator=False, show_image=False, show_summary=False):
+    init_session()
+    model = get_model(weight_file=weight_file_list, show_image=show_image, model_name=model_name,
+                      load_by_name=load_weight_by_name)
+
+    if show_summary:
+        model.summary(line_length=100)
+    model.compile(loss=loss_function, optimizer=keras.optimizers.Adam(lr=1e-4))
     time = datetime.now().strftime('%Y%m%d_%H%M%S')
     checkpoint_dir = os.path.join(Config.checkpoint_dir, time)
     log_dir = os.path.join(Config.tensorboard_log_dir, time)
     os.mkdir(checkpoint_dir)
     os.mkdir(log_dir)
-    model = SSD_Model("vgg16", 10, [os.path.join(Config.weight_dir, "ssd_weights_20.h5"), ])
-    # 训练参数设置
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(
-        os.path.join(checkpoint_dir, 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5'),
+        os.path.join(checkpoint_dir,
+                     'SSD_ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}-' + str(model_name) + '.h5'),
         monitor='val_loss', save_weights_only=True, save_best_only=True, period=1)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
 
-    BATCH_SIZE = 4
+    prior_box_list = get_prior_box_list(model_name)
+    model.fit_generator(
+        data_generator(Config.train_annotation_path, method=PMethod.Reshape,
+                       prior_box_list=prior_box_list, model_name=model_name,
+                       use_generator=use_generator),
+        steps_per_epoch=1000,
+        epochs=500,
+        validation_data=data_generator(Config.valid_annotation_path, method=PMethod.Reshape,
+                                       prior_box_list=prior_box_list, model_name=model_name,
+                                       use_generator=use_generator),
+        validation_steps=100,
+        initial_epoch=0,
+        callbacks=[logging, checkpoint],
+        verbose=1)
 
-    model.compile(optimizer=Adam(lr=5e-5), loss=loss_function)
-    model.fit_generator(data_generator(Config.train_annotation_path, batch_size=4, method=PMethod.Reshape),
-                        steps_per_epoch=25,
-                        validation_data=data_generator(Config.valid_annotation_path, batch_size=4,
-                                                       method=PMethod.Reshape),
-                        validation_steps=25,
-                        epochs=1000,
-                        initial_epoch=0,
-                        callbacks=[logging, checkpoint, reduce_lr],
-                        verbose=1)
+
+if __name__ == '__main__':
+    train(weight_file_list=[get_weight_file("ssd_weights.h5"),
+                            get_weight_file("vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5")],
+          load_weight_by_name=[True, True],
+          model_name=ModelConfig.VGG16,
+          show_image=True,
+          use_generator=True,
+          show_summary=True)
