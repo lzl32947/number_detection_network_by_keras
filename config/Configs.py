@@ -22,6 +22,8 @@ class Config(object):
 
     single_digits_dir = "data/single_digits"
 
+    detection_result_dir = "data/result"
+
     class_names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     bg_class = 0
 
@@ -32,20 +34,21 @@ class Config(object):
 
 class model_config(Config):
     def __init__(self,
-                 input_dim=None,
-                 input_source_layer_sequence=None,
-                 input_source_layer_normalization=None,
-                 input_source_layers_name=None,
-                 input_source_layer_width=None,
-                 s_min=None,
-                 s_max=None,
-                 aspect_ratios_per_layer=None,
-                 variances=None,
-                 nms_threshold=None,
-                 softmax_threshold=None,
-                 top_k=None,
-                 min_size=None,
-                 max_size=None):
+                 input_dim,
+                 input_source_layer_sequence,
+                 input_source_layer_normalization,
+                 input_source_layers_name,
+                 input_source_layer_width,
+                 s_min,
+                 s_max,
+                 aspect_ratios_per_layer,
+                 variances,
+                 nms_threshold,
+                 softmax_threshold,
+                 top_k,
+                 min_size,
+                 max_size,
+                 ):
         super().__init__()
         self._input_dim = input_dim
         self._input_source_layers_name = input_source_layers_name
@@ -125,6 +128,69 @@ class ModelConfig(Enum):
         input_source_layer_sequence=[13, 20, 23, 26, 28, 30],
         input_source_layer_normalization=[True, False, False, False, False, False],
         input_source_layers_name=['conv4_3', 'fc7', 'conv6_2', 'conv7_2', 'conv8_2', 'conv9_2'],
+        input_source_layer_width=[38, 19, 10, 5, 3, 1],
+        s_min=20,
+        s_max=90,
+        aspect_ratios_per_layer=[[1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5]],
+        variances=[0.1, 0.1, 0.2, 0.2],
+        nms_threshold=0.5,
+        softmax_threshold=0.5,
+        top_k=400,
+        min_size=[30.0, 60.0, 111.0, 162.0, 213.0, 264.0],
+        max_size=[60.0, 111.0, 162.0, 213.0, 264.0, 315.0]
+    )
+    ResNet50 = model_config(
+        input_dim=300,
+        input_source_layer_sequence=[80, 142, 174, 177, 179, 181],
+        input_source_layer_normalization=[True, False, False, False, False, False],
+        input_source_layers_name=['activation_22', 'activation_40', 'activation_49', 'conv7_2', 'conv8_2', 'conv9_2'],
+        input_source_layer_width=[38, 19, 10, 5, 3, 1],
+        s_min=20,
+        s_max=90,
+        aspect_ratios_per_layer=[[1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5]],
+        variances=[0.1, 0.1, 0.2, 0.2],
+        nms_threshold=0.5,
+        softmax_threshold=0.5,
+        top_k=400,
+        min_size=[30.0, 60.0, 111.0, 162.0, 213.0, 264.0],
+        max_size=[60.0, 111.0, 162.0, 213.0, 264.0, 315.0]
+    )
+    ResNet101 = model_config(
+        input_dim=300,
+        input_source_layer_sequence=[80, 312, 344, 347, 349, 351],
+        input_source_layer_normalization=[True, False, False, False, False, False],
+        input_source_layers_name=['conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out', 'conv7_2', 'conv8_2', 'conv9_2'],
+        input_source_layer_width=[38, 19, 10, 5, 3, 1],
+        s_min=20,
+        s_max=90,
+        aspect_ratios_per_layer=[[1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5, 3.0, 1.0 / 3.0],
+                                 [1.0, 2.0, 0.5],
+                                 [1.0, 2.0, 0.5]],
+        variances=[0.1, 0.1, 0.2, 0.2],
+        nms_threshold=0.5,
+        softmax_threshold=0.5,
+        top_k=400,
+        min_size=[30.0, 60.0, 111.0, 162.0, 213.0, 264.0],
+        max_size=[60.0, 111.0, 162.0, 213.0, 264.0, 315.0]
+    )
+    MobileNetV2 = model_config(
+        input_dim=300,
+        input_source_layer_sequence=[57, 119, 154, 157, 159, 161],
+        input_source_layer_normalization=[True, False, False, False, False, False],
+        input_source_layers_name=['block_6_expand_relu', 'block_13_expand_relu', 'out_relu', 'conv7_2', 'conv8_2', 'conv9_2'],
         input_source_layer_width=[38, 19, 10, 5, 3, 1],
         s_min=20,
         s_max=90,

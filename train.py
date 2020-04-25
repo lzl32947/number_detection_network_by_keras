@@ -7,7 +7,10 @@ from keras.callbacks import TensorBoard, ModelCheckpoint
 from keras.utils import plot_model
 
 from config.Configs import Config, PMethod, ModelConfig
+from model.resnet50_base import ResNet50_SSD
 from model.vgg16_base import VGG16_SSD
+from model.resnet101_base import ResNet101_SSD
+from model.mobilenetv2_base import MobileNetV2_SSD
 from util.input_util import data_generator, get_prior_box_list, get_weight_file
 
 
@@ -90,19 +93,26 @@ def get_model(weight_file, load_by_name, model_name, show_image=False):
     prior_box_list = get_prior_box_list(model_name)
     if model_name == ModelConfig.VGG16:
         model = VGG16_SSD(prior_box_list)
-        if weight_file:
-            for i, j in zip(weight_file, load_by_name):
-                model.load_weights(i, by_name=j, skip_mismatch=True)
-        if show_image:
-            plot_model(model, to_file=os.path.join(Config.model_output_dir, "{}.png".format(model_name)),
-                       show_shapes=True,
-                       show_layer_names=True)
-        return model
+    elif model_name == ModelConfig.ResNet50:
+        model = ResNet50_SSD(prior_box_list)
+    elif model_name == ModelConfig.ResNet101:
+        model = ResNet101_SSD(prior_box_list)
+    elif model_name == ModelConfig.MobileNetV2:
+        model = MobileNetV2_SSD(prior_box_list)
     else:
         raise RuntimeError("No model selected.")
+    if weight_file:
+        for i, j in zip(weight_file, load_by_name):
+            model.load_weights(i, by_name=j, skip_mismatch=True)
+    if show_image:
+        plot_model(model, to_file=os.path.join(Config.model_output_dir, "{}.png".format(model_name)),
+                   show_shapes=True,
+                   show_layer_names=True)
+    return model
 
 
-def train(weight_file_list, load_weight_by_name, model_name, use_generator=False, show_image=False, show_summary=False):
+def train(weight_file_list, load_weight_by_name, model_name, use_generator=False, show_image=False, show_summary=False,
+          batch_size=4):
     init_session()
     model = get_model(weight_file=weight_file_list, show_image=show_image, model_name=model_name,
                       load_by_name=load_weight_by_name)
@@ -111,8 +121,14 @@ def train(weight_file_list, load_weight_by_name, model_name, use_generator=False
         model.summary(line_length=100)
     model.compile(loss=loss_function, optimizer=keras.optimizers.Adam(lr=1e-4))
     time = datetime.now().strftime('%Y%m%d_%H%M%S')
-    checkpoint_dir = os.path.join(Config.checkpoint_dir, time)
-    log_dir = os.path.join(Config.tensorboard_log_dir, time)
+    checkpoint_dir = os.path.join(Config.checkpoint_dir, str(model_name))
+    log_dir = os.path.join(Config.tensorboard_log_dir, str(model_name))
+    if not os.path.exists(checkpoint_dir):
+        os.mkdir(checkpoint_dir)
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    checkpoint_dir = os.path.join(checkpoint_dir, time)
+    log_dir = os.path.join(log_dir, time)
     os.mkdir(checkpoint_dir)
     os.mkdir(log_dir)
     logging = TensorBoard(log_dir=log_dir)
@@ -125,12 +141,12 @@ def train(weight_file_list, load_weight_by_name, model_name, use_generator=False
     model.fit_generator(
         data_generator(Config.train_annotation_path, method=PMethod.Reshape,
                        prior_box_list=prior_box_list, model_name=model_name,
-                       use_generator=use_generator),
+                       use_generator=use_generator, batch_size=batch_size),
         steps_per_epoch=1000,
         epochs=500,
         validation_data=data_generator(Config.valid_annotation_path, method=PMethod.Reshape,
                                        prior_box_list=prior_box_list, model_name=model_name,
-                                       use_generator=use_generator),
+                                       use_generator=use_generator, batch_size=batch_size),
         validation_steps=100,
         initial_epoch=0,
         callbacks=[logging, checkpoint],
@@ -139,9 +155,10 @@ def train(weight_file_list, load_weight_by_name, model_name, use_generator=False
 
 if __name__ == '__main__':
     train(weight_file_list=[get_weight_file("ssd_weights.h5"),
-                            get_weight_file("vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5")],
+                            get_weight_file("resnet101_weights_tf_dim_ordering_tf_kernels_notop.h5")],
           load_weight_by_name=[True, True],
-          model_name=ModelConfig.VGG16,
+          model_name=ModelConfig.ResNet101,
           show_image=True,
+          batch_size=2,
           use_generator=True,
           show_summary=True)
