@@ -295,13 +295,13 @@ def get_weight_file(name):
             dir_path = os.path.join(root, d)
             for _r, _d, f in os.walk(dir_path):
                 for dx in _d:
-                    _dir = os.path.join(_r, dx)
+                    _dir = os.path.join(dir_path, dx)
                     for _root, _x, weight_files in os.walk(_dir):
                         for weight_file in weight_files:
                             if weight_file == name:
-                                file_list.append(os.path.join(dir_path, weight_file))
+                                file_list.append(os.path.join(_dir, weight_file))
                             elif name + ".h5" == weight_file:
-                                file_list.append(os.path.join(dir_path, weight_file))
+                                file_list.append(os.path.join(_dir, weight_file))
     for root, dirs, files in os.walk(Config.weight_dir):
         for weight_file in files:
             if weight_file == name:
