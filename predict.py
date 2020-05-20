@@ -15,6 +15,19 @@ import os
 def prediction_for_recording(record_name, weight_file, model_name,
                              use_generator=True, generator_count=0, use_annotation=True, annotation_lines=[],
                              save_image=False, method=PMethod.Reshape):
+    """
+    Making predictions for images and write records.
+    :param record_name: str, the name of the record
+    :param weight_file: list, the list of path to weight files
+    :param model_name: ModelConfig object
+    :param use_generator: bool, if true, the model will only make predictions on generated images
+    :param generator_count: int, if use_generator is true, the count of the generated images
+    :param use_annotation: bool, if true, the model will only make predictions on annotations that given
+    :param annotation_lines: list, the list of line of annotations
+    :param save_image: bool, if true, the original image will be saved.
+    :param method: PMethod class.
+    :return: None
+    """
     init_session()
     predict_model = get_model(
         weight_file=weight_file,
@@ -146,7 +159,16 @@ def prediction_for_recording(record_name, weight_file, model_name,
                 print("finish {} image for generator".format(count))
 
 
-def predict_for_image(weight_file_list, load_by_name_list, model_name, method):
+def predict_for_image(weight_file_list, use_generator, load_by_name_list, model_name, method):
+    """
+    Making predictions for images and write records.
+    :param weight_file_list: list, the list of path to weight files
+    :param use_generator: bool, if true, the model will predict on generated images, else will load annotations by default path
+    :param load_by_name_list: list, list of boolean that control whether to load the weight using 'by_name'
+    :param model_name: ModelConfig object
+    :param method: PMethod class
+    :return: None
+    """
     model = model_name.value
     init_session()
     process_method = method
@@ -154,27 +176,60 @@ def predict_for_image(weight_file_list, load_by_name_list, model_name, method):
         weight_file=weight_file_list,
         load_by_name=load_by_name_list, model_name=model_name)
     img_list = get_image_number_list()
-    while True:
-        image, box = generate_single_image(img_list)
-        x, shape = process_input_image(image, model.input_dim, process_method)
-        x = np.expand_dims(x, axis=0)
-        result = predict_model.predict(x)
-        result_list = decode_result(result, model_name=model)
-        draw_image(image, result_list, process_method, model.input_dim)
+    annotations = []
+    with open("./data/test.txt", 'r') as f:
+        for line in f:
+            annotations.append(line)
+
+    if use_generator:
+        while True:
+            image, box = generate_single_image(img_list)
+            x, shape = process_input_image(image, model.input_dim, process_method)
+            x = np.expand_dims(x, axis=0)
+            result = predict_model.predict(x)
+            result_list = decode_result(result, model_name=model_name)
+            draw_image(image, result_list, process_method, model.input_dim)
+    else:
+        for term in annotations:
+            line = term.split()
+            img_path = line[0]
+            img_box = np.array([np.array(list(map(int, box.split(',')))) for box in line[1:]], dtype=np.int)
+            img = Image.open(img_path)
+            x, shape = process_input_image(img, model.input_dim, process_method)
+            x = np.expand_dims(x, axis=0)
+            result = predict_model.predict(x)
+            result_list = decode_result(result, model_name=model_name)
+            draw_image(img, result_list, process_method, model.input_dim)
 
 
 if __name__ == '__main__':
-    a = []
-    with open("./data/nature_annotation_for_prediction.txt", 'r') as f:
-        for line in f:
-            a.append(line)
-    prediction_for_recording(record_name="simple_mobilenetv2_default_prior_box_all_generated",
-                             weight_file=[
-                                 get_weight_file('SSD_ep030-loss0.239-val_loss0.130-ModelConfig.MobileNetV2.h5'), ],
-                             model_name=ModelConfig.MobileNetV2,
-                             use_generator=True,
-                             generator_count=200,
-                             use_annotation=False,
-                             annotation_lines=a,
-                             save_image=False,
-                             method=PMethod.Reshape)
+    # a = []
+    # with open("./data/test.txt", 'r') as f:
+    #     for line in f:
+    #         a.append(line)
+    # prediction_for_recording(record_name="mobilenetv2_test_generated_result",
+    #                          weight_file=[
+    #                              get_weight_file('SSD_ep038-loss0.116-val_loss0.314-ModelConfig.MobileNetV2.h5'), ],
+    #                          model_name=ModelConfig.MobileNetV2,
+    #                          use_generator=True,
+    #                          generator_count=200,
+    #                          use_annotation=False,
+    #                          annotation_lines=a,
+    #                          save_image=False,
+    #                          method=PMethod.Reshape)
+    # prediction_for_recording(record_name="mobilenetv2_test_nature_result",
+    #                          weight_file=[
+    #                              get_weight_file('SSD_ep038-loss0.116-val_loss0.314-ModelConfig.MobileNetV2.h5'), ],
+    #                          model_name=ModelConfig.MobileNetV2,
+    #                          use_generator=False,
+    #                          generator_count=200,
+    #                          use_annotation=True,
+    #                          annotation_lines=a,
+    #                          save_image=False,
+    #                          method=PMethod.Reshape)
+    # predict_for_image(weight_file_list=[get_weight_file('SSD_ep039-loss0.090-val_loss0.066-ModelConfig.VGG16.h5')],
+    #                   use_generator=False,
+    #                   load_by_name_list=[True],
+    #                   model_name=ModelConfig.VGG16,
+    #                   method=PMethod.Reshape)
+    pass
