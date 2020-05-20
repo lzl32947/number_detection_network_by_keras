@@ -16,9 +16,9 @@ class Config(object):
 
     test_data_dir = "data/test"
 
-    train_annotation_path = "data/train_annotation.txt"
-    test_annotation_path = "data/test_annotation.txt"
-    valid_annotation_path = "data/valid_annotation.txt"
+    train_annotation_path = "data/train.txt"
+    test_annotation_path = "data/test.txt"
+    valid_annotation_path = "data/valid.txt"
 
     single_digits_dir = "data/single_digits"
 
